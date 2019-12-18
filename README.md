@@ -1,70 +1,58 @@
-# UBUMLaaS ![admirable-logo](ubumlaas/static/img/onlyA-32x32.svg)
-MLaaS platform based on ADMIRABLE and BEST-AI research groups methods.
-#### Platform from Spanish "Ministerio de Economía y Competetividad" Project "*Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones*"
+# UBUMLaaS [![admirable-logo](ubumlaas/static/img/onlyA-32x32.svg)](http://admirable-ubu.es/)
+
+
+[![Travis (.org)](https://img.shields.io/travis/JoseBarbero/UBUMLaaS/master.svg?label=Travis%20CI&logo=travis-ci&logoColor=white&style=for-the-badge)](https://travis-ci.org/JoseBarbero/UBUMLaaS)
+[![Code Climate maintainability](https://img.shields.io/codeclimate/maintainability/JoseBarbero/UBUMLaaS?logo=code-climate&style=for-the-badge)](https://codeclimate.com/github/JoseBarbero/UBUMLaaS)
+[![GitHub repo size](https://img.shields.io/github/repo-size/JoseBarbero/UBUMLaaS?color=yellowgreen&logo=github&style=for-the-badge)](https://github.com/JoseBarbero/UBUMLaaS/archive/master.zip)
+[![GitHub](https://img.shields.io/github/license/JoseBarbero/UBUMLaaS?logo=gnu&logoColor=white&style=for-the-badge)](https://github.com/JoseBarbero/UBUMLaaS/blob/master/LICENSE)
+
+Machine Learning as a Service (MLaaS) platform based on [ADMIRABLE](http://admirable-ubu.es/) and [BEST-AI](https://www.ubu.es/best-ai-biologia-educacion-y-salud-con-tecnologias-avanzadas-informaticas-best-ai) research groups methods.
 
 ---
-## Installation
+This application is described as one of the result of two different projects (with objectives partially overlapping, and being this application in the intersection of the objectives):
+
+1. <a href="http://www.mineco.gob.es/portal/site/mineco/"><img align="right" width="20%" src="ubumlaas/static/img/MEC.svg"></a>
+Project "***Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones***" from "*Ministerio de Economía y Competitividad*" (reference: TIN2015-67534-P)
+2. <a href="https://www.jcyl.es/"><img align="right" width="20%" src="ubumlaas/static/img/JCYL.svg"></a>
+Project "***Minería de datos para la mejora del mantenimiento y disponibilidad de máquinas de altas presiones***" from *"Consejería de Educación de la Junta de Castilla y León"* (reference: BU085P17)
+
+---
+## Installation (Linux)
 
 1. Clone this repository
     ```bash
     $ git clone https://github.com/JoseBarbero/UBUMLaaS.git
     ```
-2. Create a conda environment
-    ```bash
-    $ conda create -n UBUMLaas python=3.6
-    ```
-3. Activate environment
-    ```bash
-    $ conda activate UBUMLaaS
-    ```
-4. Go to UBUMLaaS repository's folder
+2. Go to UBUMLaaS repository's folder
     ```bash
     $ cd UBUMLaaS
     ```
-5. Install requeriments
+3. Create a conda environment
     ```bash
-    $ pip install -r requeriments.txt
+    $ conda env create -f UBUMLaaS_env.yml
     ```
-6. Create database
+4. Activate environment
     ```bash
-    $ flask db init
-    $ flask db migrate
-    $ flask db upgrade
+    $ conda activate UBUMLaaS
     ```
-    *Opt:* 
-    Download a database and put it in ./ubumlaas/
-7. Create environments variables
-    ```bash
-    #!/bin/bash
-
+5. Modify **env_variables.sh** with properly values
+    ```bash 
     export SECRET_KEY=<app secret key>
     export EMAIL_AC=<email>
     export EMAIL_PASS=<email-password>
-    LIBFOLDER=.
-    export WEKA_HOME=$LIBFOLDER/lib/wekafiles/packages/
-
-    ruta="$WEKA_HOME/packages/"
-    packages=$(ls -l $ruta)
-
-    pack=()
-    IFS=$'\n'
-    #rev |cut -d" " -f1 | rev
-    for p in $packages; do
-        
-        first=$(echo $p | cut -f1 -d" " | head -c 1)
-        if [ $first == "d" ]; then
-            pack=("${pack[@]}" $(echo $p | rev |cut -d" " -f1 | rev))
-        fi
-    done
-
-    _res=""
-    for (( i=0; i<${#pack[@]}; i++ ))
-    do
-        _res="$ruta${pack[$i]}/${pack[$i]}.jar:$_res"
-    done
-
-    export MEKA_CLASSPATH="$_res$LIBFOLDER/lib/scikit_ml_learn_data/meka/meka-release-1.9.2/lib/"
+    export FLASK_ENV=development #development or production
+    LIBFOLDER=/absolute/path/to/UBUMLaaS
     ```
+6. With the conda environment UBUMLaaS, execute the script to export environment variables when activate conda env.
+    ```bash
+    $ source env_vars_to_conda.sh
+    ```
+7. Create database
+    ```bash
+    $ mv data_base.sqlite ubumlaas/data.sqlite
+    ```
+    *Opt:* 
+    Download a database and put it in ./ubumlaas/
 8. Install Redis-Server
     ```bash
     $ sudo apt install redis-server
@@ -72,10 +60,22 @@ MLaaS platform based on ADMIRABLE and BEST-AI research groups methods.
     $ sudo systemctl enable redis-server #If you want to initialize the service in startup
     ```
     *Caution*: Close all workers of RQ before stop redis-server
-9.  Execute
+
+## Execution
+1. Inside the UBUMLaaS repository's folder, activate conda environment if not activated.
+    ```bash
+    $ conda activate UBUMLaaS
+    ```
+2.  Execute to run the server
     ```bash
     python app.py
     ```
+## Update database
+1. Execute migrate.py
+   ```bash
+   $ python migrate.py
+   ``` 
+
 
 ---
 

@@ -7,11 +7,16 @@ $("document").ready(function(){
 /**
  * Generate an base estimator configuration for ensemble.
  * 
- * @param {*} alg_name 
+ * @param {string} alg_name the name of an algorithm to be used as base estimator
+ * @param {int, default=null} level of ensemble 
  */
-function load_new_ensemble(alg_name, level = null){
+function load_new_ensemble(alg_name, level=null, filter=false){
     if(level == null){
         level = sub_clasifiers_count;
+    }
+    
+    if(filter){
+        id = "form_config_filter_level"+level;
     }
     let id = "form_config_alg_level"+level;
     let lvl = $("#"+id);
@@ -22,13 +27,13 @@ function load_new_ensemble(alg_name, level = null){
         lvl.html("");
     }
     let alg_config = JSON.parse(load_config(false, alg_name, false));
-    generateForm(alg_config, id, level);
+    generateForm(alg_config, id, level, filter);
 }
 
 /**
  * Change validity of input attribute
  * 
- * @param {basename of input attribute}
+ * @param {string} e basename of input attribute
  */
 function change_validate(e){
     let _value = $("#"+e+"_value");
@@ -42,15 +47,21 @@ function change_validate(e){
 }
 
 /**
- * Generate a form to configure algorithm
+ * Generate a form to configure algorithm.
  * 
- * @param {algorithm object with base configuration} alg_config 
- * @param {identifier of div where form be placed} place_in_id 
- * @param {level of the estimator} level_to_modify 
+ * @param {object} alg_config algorithm object with base configuration
+ * @param {string} place_in_id identifier of div where form be placed
+ * @param {int} level_to_modify level of the estimator
  */
-function generateForm(alg_config, place_in_id="form_config_alg", level_to_modify=0){
-    if(level_to_modify == sub_clasifiers_count){
-        sub_clasifiers_count++;
+function generateForm(alg_config, place_in_id, level_to_modify=0, filter=false){
+    if (!filter){
+        if(level_to_modify == sub_clasifiers_count){
+            sub_clasifiers_count++;
+        }
+    }else{
+        if(level_to_modify == sub_filter_count){
+            sub_filter_count++;
+        }
     }
     alg_config_reference = alg_config;
     var place_in = $("#"+place_in_id);
@@ -61,7 +72,7 @@ function generateForm(alg_config, place_in_id="form_config_alg", level_to_modify
     var row_number = 0;
     parameters.forEach(function(i){
         row_number += 1;
-        let subalgorithm = create_algorithm_config_field(place_in, row_number, i, level_to_modify, alg_config);
+        let subalgorithm = create_algorithm_config_field(place_in, row_number, i, level_to_modify, alg_config, filter);
         if (subalgorithm != ""){
             new_subalgorithm = subalgorithm;
         }
@@ -70,21 +81,22 @@ function generateForm(alg_config, place_in_id="form_config_alg", level_to_modify
     if(new_subalgorithm != ""){
         load_new_ensemble(new_subalgorithm);
     }else if ( sub_clasifiers_count > level_to_modify){
-        clean_levels(level_to_modify+1);            
+        clean_levels(level_to_modify+1, filter);            
     }
-    beautify_alg_config();
+    beautify_alg_config(filter);
+    $('[data-toggle="tooltip"]').tooltip();
 }
 
 /**
  * Generate a selectable of subclasifier.
  * 
  * @param {string} basename basename of algorithm 
- * @param {*} parameter parameters of algorithm
+ * @param {object} parameter parameters of algorithm
  */
 function create_ensemble_block(basename, parameter){
     let content;
     content = $("<select></select>", {id: basename+"_value"});
-    let petition = "alg_name="+$("#alg_name").val();
+    let petition = "alg_name="+$("#alg_name").val()+"&exp_typ="+alg_typ.val();
     let _options = give_me_base_estimators(petition);
     _options.forEach(function (e) { 
         content.append($("<option value=\""+e.alg_name+"\">"+e.web_name+"</option>"));
@@ -94,6 +106,12 @@ function create_ensemble_block(basename, parameter){
      return content;
 }
 
+/**
+ * Create a switch for boolean argument.
+ * 
+ * @param {string} basename name of parameter in html
+ * @param {object} parameter configuration of boolean argument
+ */
 function create_boolean_block(basename, parameter){
     let content;
 
@@ -110,6 +128,12 @@ function create_boolean_block(basename, parameter){
     return content;
 }
 
+/**
+ * Create a select for string argument.
+ * 
+ * @param {string} basename name of parameter in html
+ * @param {object} parameter configuration of string argument
+ */
 function create_string_block(basename, parameter){
     let content;
 
@@ -121,13 +145,21 @@ function create_string_block(basename, parameter){
     return content;
 }
 
+/**
+ * Create a numbered input for numeric (float or integer) argument.
+ * 
+ * @param {string} basename name of parameter in html
+ * @param {object} parameter configuration of numeric argument
+ */
 function create_numeric_block(basename, parameter, mode){
     let content;
     let step, min, max;
     if(mode === "float"){
         step='any';
-        min=convertExponentialToDecimal(parameter.min);
-        max=convertExponentialToDecimal(parameter.max);
+        if(typeof parameter.min !== "undefined")
+            min=convertExponentialToDecimal(parameter.min);
+        if(typeof parameter.max !== "undefined")
+           max=convertExponentialToDecimal(parameter.max);
     }else if(mode === 'int'){
         step=1;
         min=parameter.min;
@@ -145,6 +177,12 @@ function create_numeric_block(basename, parameter, mode){
     return content;
 }
 
+/**
+ * Define the attributes of container of algorithm configuration.
+ * 
+ * @param {jquery object} content 
+ * @param {string} basename name of parameter in html
+ */
 function content_attributes(content, basename){
     content.attr({style: "display: none"});
     let func = "change_value('"+basename+"')";
@@ -152,6 +190,12 @@ function content_attributes(content, basename){
     content.addClass("config_alg");
 }
 
+/**
+ * Create a container for algorithm configuration.
+ * 
+ * @param {string} basename name of parameter in html
+ * @param {object} parameter definition of argument
+ */
 function create_form_fields(basename, parameter){
     let content;
     switch(parameter.type){
@@ -176,6 +220,14 @@ function create_form_fields(basename, parameter){
     return content;
 }
 
+/**
+ * HTML+CSS+JS decoration of container of argument.
+ * 
+ * @param {jquery object} content 
+ * @param {string} basename name of parameter in html
+ * @param {object} parameter definition of argument
+ * @param {integer} level_to_modify level of ensemble
+ */
 function final_decoration_for_form_field(content, basename, parameter, level_to_modify){
     let new_subalgorithm = "";
     if(parameter.type == 'ensemble'){
@@ -189,15 +241,24 @@ function final_decoration_for_form_field(content, basename, parameter, level_to_
     return new_subalgorithm;
 }
 
-function create_algorithm_config_field(place_in, row_number, field, level_to_modify, alg_config){
-    let basename = get_basename(field, level_to_modify);        
+/**
+ * Render an algorithm argument field
+ * 
+ * @param {string} place_in node's identifier where put the form 
+ * @param {int} row_number row index of field (for striped css)
+ * @param {string} field real nome of the parameter
+ * @param {int} level_to_modify level of the ensemble
+ * @param {object} alg_config definition of algorithm configuration posibilities
+ */
+function create_algorithm_config_field(place_in, row_number, field, level_to_modify, alg_config, filter=false){
+    let basename = get_basename(field, level_to_modify, filter);        
     let parameter = alg_config[field];
     let row = $("<div></div>", {class: "row"});
     let block = $("<div></div>", {id: basename, class: "col-12"});
     if (row_number%2 == 1){
         block.addClass("row-odd");
     }
-    get_base_block(row, block, field, parameter, level_to_modify);        
+    get_base_block(row, block, field, parameter, level_to_modify, filter);        
     let content = create_form_fields(basename, parameter);
     
     if(["integer", "float", "boolean"].includes(parameter.type)){
@@ -213,6 +274,13 @@ function create_algorithm_config_field(place_in, row_number, field, level_to_mod
     return new_subalgorithm;
 }
 
+/**
+ * Get the particular configuration of a field 
+ * 
+ * @param {jquery object} parameter 
+ * @param {object} par definition of parameter
+ * @param {int} level level where is the field
+ */
 function config_form_value(parameter, par, level){
     let result = parameter.val();
     switch(par.type){

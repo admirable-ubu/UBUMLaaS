@@ -15,11 +15,23 @@ class Abstract_execute(ABC):
             experiment {dict} -- experiment dictionary
         """
         self.algorithm_name = experiment["alg"]["alg_name"]  # for example: weka.classification.trees.J48
-        self.algorithm_type = Abstract_execute._know_type(experiment)  # classification, reggression or mixed
-        self.algorithm_configuration = json.loads(experiment["alg_config"])  # configuration algorithm
-        self.configuration = json.loads(experiment["alg"]["config"])
-        self.experiment_configuration = json.loads(experiment["exp_config"])
+        self.algorithm_configuration = Abstract_execute.__convert_to_dict(experiment["alg_config"])  # configuration algorithm
+        self.configuration = Abstract_execute.__convert_to_dict(experiment["alg"]["config"])
+        self.experiment_configuration = Abstract_execute.__convert_to_dict(experiment["exp_config"])
+        self.algorithm_type = self.experiment_configuration["alg_type"]  # classification, reggression or mixed
+        if experiment.get("filter") is not None:
+            self.filter_name = experiment["filter"]["filter_name"]
+            self.filter_config = Abstract_execute.__convert_to_dict(experiment["filter_config"])
+        else:
+            self.filter_name = None
 
+    @staticmethod
+    def __convert_to_dict(possible_json_str):
+        """Convert to dictionary
+        """
+        if type(possible_json_str) != dict:
+            possible_json_str = json.loads(possible_json_str)
+        return possible_json_str
 
     @abstractmethod
     def create_model(self):
@@ -100,7 +112,8 @@ class Abstract_execute(ABC):
         data = get_dataframe_from_file(path, filename)
         X = data.loc[:, self.experiment_configuration["columns"]]
         y = None
-        if set(self.experiment_configuration["target"]) <= set(data.columns):
+        #check if targets is not empty and some column from targets are in data column
+        if len(self.experiment_configuration["target"]) !=0 and set(self.experiment_configuration["target"]) <= set(data.columns):
             y = data.loc[:, self.experiment_configuration["target"]]
         return X, y
 
@@ -117,7 +130,7 @@ class Abstract_execute(ABC):
         """
         pass
 
-    def generate_train_test_split(self, X, y, train_size):
+    def generate_train_test_split(self, X, y, train_size, random_state=None):
         """Generate train test split
 
         Arguments:
@@ -128,14 +141,18 @@ class Abstract_execute(ABC):
         Returns:
             [DataFrames] -- X_train, X_test, y_train, y_test
         """
-        if train_size == 100:
-            return X, [], y, []
+
+        if y is None:
+            X_train, X_test = sklearn.model_selection. \
+            train_test_split(X, train_size=train_size/100,
+                             random_state=self.experiment_configuration.get("random_seed", random_state))
+            return X_train, X_test, None, None
 
         return sklearn.model_selection. \
-            train_test_split(X, y, train_size=train_size/100)
+            train_test_split(X, y, train_size=train_size/100,
+                             random_state=self.experiment_configuration.get("random_seed", random_state))
 
-    def generate_KFolds(self, X, y, n_splits=3, shuffle=False,
-                        random_state=None):
+    def generate_KFolds(self, X, y, n_splits=3, shuffle=False, random_state=None):
         """Generate KFolds
 
         Arguments:
@@ -145,15 +162,24 @@ class Abstract_execute(ABC):
         Keyword Arguments:
             n_splits {int} -- Number of folds. Must be at least 2. (default: {3})
             shuffle {bool} -- Whether to shuffle the data before splitting into batches. (default: {False})
-            random_state {int, RandomState instance or None} -- If int, random_state is the seed used by the random number generator; If RandomState instance, random_state is the random number generator; If None, the random number generator is the RandomState instance used by np.random. Used when shuffle == True. (default: {None})
 
         Returns:
             [list] -- list of tuples with X_train, X_test, y_train, y_test in each tuple
         """
         folds = []
 
-        kf = self.kfold_algorithm()(n_splits=n_splits, shuffle=shuffle, random_state=random_state)
+        kf = self.kfold_algorithm()(n_splits=n_splits, shuffle=shuffle,
+                                    random_state=self.experiment_configuration.get("random_seed", random_state))
 
+        if y is None:
+            for train_index, test_index in kf.split(X):
+
+                X_train, X_test = X.iloc[train_index, :], \
+                                X.iloc[test_index, :]
+
+                folds.append((X_train, X_test, None, None))
+            return folds
+        
         for train_index, test_index in kf.split(X, y):
 
             X_train, X_test = X.iloc[train_index, :], \
@@ -163,28 +189,6 @@ class Abstract_execute(ABC):
             folds.append((X_train, X_test, y_train, y_test))
         return folds
 
-    @staticmethod
-    def _know_type(exp):
-        """If the algorthim is mixed, find the deepest base classifier
-
-        Arguments:
-            exp {dict} -- experiment dict
-
-        Returns:
-            [str] -- 
-        """
-        if exp["alg"]["alg_typ"] == "Mixed":
-            from ubumlaas.models import get_algorithm_by_name
-            config = json.loads(exp["alg_config"])
-            for c in config:
-                if type(config[c]) == dict:
-                    new_exp = {"alg": get_algorithm_by_name(
-                                        config[c]["alg_name"]
-                                      ).to_dict(),
-                               "alg_config": config[c]["parameters"]}
-                    return Abstract_execute._know_type(new_exp)
-        return exp["alg"]["alg_typ"]
-
     def is_classification(self):
         """Check if the algorithm type is Classification
 
@@ -192,3 +196,6 @@ class Abstract_execute(ABC):
             [bool] -- True if algorithm is Classfication
         """
         return self.algorithm_type == "Classification"
+
+    def has_filter(self):
+        return self.filter_name is not None

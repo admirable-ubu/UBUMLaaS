@@ -1,7 +1,7 @@
 import variables as v
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-from sqlalchemy import and_, or_, text
+from sqlalchemy import and_, or_, text, desc, asc
 
 from flask_login import UserMixin
 
@@ -53,27 +53,51 @@ def get_experiments(idu):
 def get_algorithms_type():
     sql = text('SELECT DISTINCT alg_typ FROM algorithms')
     result = v.db.engine.execute(sql)
-    types = [(row[0], row[0]) for row in result]
+    types = [(row[0], row[0]) for row in result if row[0] != "Mixed"]
     return types
 
 
-def get_similar_algorithms(alg_name):
+# def get_similar_algorithms(alg_name):
+#     """Get algorithm that can be base estimator
+    
+#     Arguments:
+#         alg_name {str} -- Name of the algorithm
+    
+#     Returns:
+#         list of lists -- all similar algorithms
+#     """
+#     alg = get_algorithm_by_name(alg_name)
+#     if alg.lib != "meka":
+#         cond = Algorithm.lib == alg.lib
+#     else:
+#         cond = Algorithm.lib == "weka"
+#         if alg.alg_typ == "MultiClassification":
+#             cond = and_(cond, or_(Algorithm.alg_typ == "Classification",
+#                                   Algorithm.alg_typ == "Mixed"))
+#         else:
+#             cond = and_(cond, or_(Algorithm.alg_typ == "Regression",
+#                                   Algorithm.alg_typ == "Mixed"))
+#     if alg.alg_typ != "Mixed" and alg.lib != "meka":
+#         cond = and_(cond, Algorithm.alg_typ == alg.alg_typ)
+#     elif alg.lib != "meka":
+#         cond = and_(cond, or_(Algorithm.alg_typ == "Classification",
+#                               Algorithm.alg_typ == "Regression"))
+#     algorithms = Algorithm.query.filter(cond).all()
+#     return algorithms
+
+
+def get_similar_algorithms(alg_name, exp_typ):
     alg = get_algorithm_by_name(alg_name)
-    if alg.lib != "meka":
-        cond = Algorithm.lib == alg.lib
+    if alg.lib == "meka":
+        cond = and_(Algorithm.lib == "weka",
+                    or_(Algorithm.alg_typ == "Classification",
+                        Algorithm.alg_typ == "Mixed"))
     else:
-        cond = Algorithm.lib == "weka"
-        if alg.alg_typ == "MultiClassification":
-            cond = and_(cond, or_(Algorithm.alg_typ == "Classification",
-                                  Algorithm.alg_typ == "Mixed"))
-        else:
-            cond = and_(cond, or_(Algorithm.alg_typ == "Regression",
-                                  Algorithm.alg_typ == "Mixed"))
-    if alg.alg_typ != "Mixed" and alg.lib != "meka":
-        cond = and_(cond, Algorithm.alg_typ == alg.alg_typ)
-    elif alg.lib != "meka":
-        cond = and_(cond, or_(Algorithm.alg_typ == "Classification",
-                              Algorithm.alg_typ == "Regression"))
+        cond = Algorithm.lib == alg.lib
+        subcond = Algorithm.alg_typ == exp_typ
+        if exp_typ in ["Classification", "Regression"]:
+            subcond = or_(subcond, Algorithm.alg_typ == "Mixed")
+        cond = and_(cond, subcond)
     algorithms = Algorithm.query.filter(cond).all()
     return algorithms
 
@@ -87,7 +111,10 @@ def get_algorithms(alg_typ):
     Returns:
         algorithm list -- all algorithm of that type.
     """
-    return Algorithm.query.filter(Algorithm.alg_typ == alg_typ).all()
+    cond = Algorithm.alg_typ == alg_typ
+    if alg_typ in ["Classification", "Regression"]:
+        cond = or_(cond, Algorithm.alg_typ == "Mixed")
+    return Algorithm.query.filter(cond).order_by(asc(Algorithm.web_name)).all()
 
 
 def get_algorithm_by_name(name):
@@ -103,6 +130,38 @@ def get_algorithm_by_name(name):
         .filter(Algorithm.alg_name == name).first()
 
 
+def get_filter_by_name(name):
+    """Get an algorfilterithm by name.
+
+    Arguments:
+        name {string} -- name of the filter.
+
+    Returns:
+        Filter -- Filter with that name.
+    """
+    return Filter.query\
+        .filter(Filter.filter_name == name).first()
+
+
+def get_compatible_filters(lib, typ=None):
+    """Get an filter by .
+
+    Arguments:
+        name {string} -- name of the algorithm.
+
+    Returns:
+        Algorithm -- Algorithm with that name.
+    """
+    cond = Filter.lib == lib
+    if typ is not None:
+        cond = and_(cond, Filter.typ == typ)
+    return Filter.query\
+        .filter(cond).all()
+
+def delete_experiment(id):
+    Experiment.query.filter_by(id=id).delete()
+    v.db.session.commit()
+
 class User(v.db.Model, UserMixin):
 
     __tablename__ = 'users'
@@ -111,6 +170,7 @@ class User(v.db.Model, UserMixin):
     email = v.db.Column(v.db.String(64), unique=True, index=True)
     username = v.db.Column(v.db.String(64), unique=True, index=True)
     password_hash = v.db.Column(v.db.String(128))
+    activated = v.db.Column(v.db.Boolean, nullable=False, default = False)
 
     def __init__(self, email, username, password):
         """User constructor
@@ -124,6 +184,9 @@ class User(v.db.Model, UserMixin):
         self.username = username
         self.password_hash = generate_password_hash(password)
 
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+        
     def check_password(self, password):
         """Compare input password with current password
 
@@ -205,6 +268,48 @@ class Algorithm(v.db.Model):
                 "lib": self.lib}
 
 
+class Filter(v.db.Model):
+
+    __tablename__ = "filters"
+
+    id = v.db.Column(v.db.Integer, primary_key=True)
+    filter_name = v.db.Column(v.db.String(64), unique=True)
+    web_name = v.db.Column(v.db.String(64))
+    filter_typ = v.db.Column(v.db.String(64))
+    config = v.db.Column(v.db.Text)
+    lib = v.db.Column(v.db.String(64))
+
+    def __init__(self, filter_name, web_name, filter_typ, config, lib):
+        """Algorithm constructor.
+
+        Arguments:
+            filter_name {str} -- filter name.
+            web_name {str} -- filter web name.
+            filter_typ {str} -- filter type
+            config {str} -- json with filter configuration.
+            lib {str} -- sklearn or weka.
+        """
+
+        self.filter_name = filter_name
+        self.web_name = web_name
+        self.filter_typ = filter_typ
+        self.config = config
+        self.lib = lib
+
+    def to_dict(self):
+        """Algorithm to dict
+
+        Returns:
+            dict -- dict with keys and values from Filter Object.
+        """
+        return {"id": self.id,
+                "filter_name": self.filter_name,
+                "web_name": self.web_name,
+                "filter_typ": self.filter_typ,
+                "config": self.config,
+                "lib": self.lib}
+
+
 class Experiment(v.db.Model):
 
     __tablename__ = 'experiments'
@@ -217,16 +322,23 @@ class Experiment(v.db.Model):
     alg_name = v.db.Column(
         v.db.String(64),
         v.db.ForeignKey('algorithms.alg_name'),
-        )
+    )
     alg_config = v.db.Column(v.db.Text)
     exp_config = v.db.Column(v.db.Text)
+    filter_name = v.db.Column(
+        v.db.String(64),
+        v.db.ForeignKey('filters.filter_name'),
+        nullable=True
+    )
+    filter_config = v.db.Column(v.db.Text, nullable=True)
     data = v.db.Column(v.db.String(128))
     result = v.db.Column(v.db.Text, nullable=True)
     starttime = v.db.Column(v.db.Integer)
     endtime = v.db.Column(v.db.Integer, nullable=True)
     state = v.db.Column(v.db.Integer)
 
-    def __init__(self, idu, alg_name, alg_config, exp_config, data, result,
+    def __init__(self, idu, alg_name, alg_config, exp_config,
+                 filter_name, filter_config, data, result,
                  starttime, endtime, state):
         """Experiment constructor.
 
@@ -245,6 +357,8 @@ class Experiment(v.db.Model):
         self.alg_name = alg_name
         self.alg_config = alg_config
         self.exp_config = exp_config
+        self.filter_name = filter_name
+        self.filter_config = filter_config
         self.data = data
         self.result = result
         self.starttime = starttime
@@ -257,9 +371,17 @@ class Experiment(v.db.Model):
         Returns:
             dict -- dict with keys and values from Experiment Object.
         """
+        filter_ = get_filter_by_name(self.filter_name)
+        if filter_ is not None:
+            filter_ = filter_.to_dict()
         return {"id": self.id, "idu": self.idu,
                 "alg": get_algorithm_by_name(self.alg_name).to_dict(),
                 "alg_config": self.alg_config, "exp_config": self.exp_config,
+                "filter": filter_,
+                "filter_config": self.filter_config,
                 "data": self.data,
                 "result": self.result, "starttime": self.starttime,
                 "endtime": self.endtime}
+
+    def web_name(self):
+        return get_algorithm_by_name(self.alg_name).web_name

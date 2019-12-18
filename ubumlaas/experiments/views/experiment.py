@@ -4,7 +4,7 @@ from flask import \
 import variables as v
 from ubumlaas.models import \
     (Experiment, load_experiment,
-     get_algorithm_by_name)
+     get_algorithm_by_name, get_filter_by_name, delete_experiment)
 from ubumlaas.experiments.forms import \
     (ExperimentForm, DatasetForm, DatasetParametersForm)
 from flask_login import (current_user, login_required)
@@ -12,9 +12,12 @@ import time
 import json
 from urllib.parse import unquote
 from ubumlaas.experiments.algorithm import task_skeleton
-from ubumlaas.util import get_dataframe_from_file
+from ubumlaas.util import get_dataframe_from_file, get_ngrok_url
 import ubumlaas.experiments.views as views
 from ubumlaas.util import (generate_df_html, get_dict_exp, get_ensem_alg_name)
+import arff
+import os
+import glob
 
 
 @login_required
@@ -54,9 +57,17 @@ def launch_experiment():
     user = current_user
     dataset_config = json.loads(unquote(request.form.get("dataset_config")))
     exp_config = dataset_config
+    filter_name = request.form.get("filter_name")
+    if filter_name is None or filter_name == "":
+        filter_name = None
+        filter_config = None
+    else:
+        filter_config = request.form.get("filter_config")
     exp = Experiment(user.id, request.form.get("alg_name"),
                      unquote(request.form.get("alg_config")),
-                     json.dumps(exp_config), request.form.get("data"),
+                     json.dumps(exp_config),
+                     filter_name, filter_config,
+                     request.form.get("data"),
                      None, time.time(), None, 0)
     v.db.session.add(exp)
     v.db.session.commit()
@@ -88,13 +99,15 @@ def change_column_list():
         str -- HTTP response with JSON
     """
     form_e = ExperimentForm()
-    dataset = form_e.data.data
+    filename = form_e.data.data
     upload_folder = "ubumlaas/datasets/"+current_user.username+"/"
-    df = get_dataframe_from_file(upload_folder, dataset)
+    df, target_columns = get_dataframe_from_file(upload_folder, filename, target_column=True)
     to_return = {"html": render_template("blocks/show_columns.html", data=df),
                  "html2": render_template("blocks/show_columns_reduced.html",
                                           data=df.columns),
-                 "df": generate_df_html(df)}
+                 "df": generate_df_html(df),
+                 "config": target_columns}
+
     return jsonify(to_return)
 
 
@@ -113,17 +126,18 @@ def result_experiment(id, admin=False):
     exp = load_experiment(id)
     if not admin and exp.idu != current_user.id:
         return "", 403
-    name = exp.alg_name
+    name = v.app.jinja_env.filters["split"](exp.alg_name)
     dict_config = json.loads(exp.alg_config)
     if "base_estimator" in dict_config.keys():
-        name += "-" + get_ensem_alg_name(dict_config["base_estimator"])
+        name += " <br>⤿ " + get_ensem_alg_name(dict_config["base_estimator"])
     dict_config = get_dict_exp(exp.alg_name, dict_config)
     template_info = {"experiment": exp,
                      "name": name,
                      "title": "Experiment Result",
                      "dict_config": dict_config,
                      "conf": json.loads(get_algorithm_by_name(
-                                        exp.alg_name).config)}
+                                        exp.alg_name).config),
+                     "external_url": get_ngrok_url("experiments.result_experiment", id = exp.id)}
     if not admin:
         return render_template("result.html", **template_info)
     else:
@@ -153,6 +167,22 @@ def reuse_experiment(id):
                            title="New experiment")
 
 
+@login_required
+@views.experiments.route("/experiment/delete", methods=["DELETE"])
+def remove_experiment():
+    id = request.get_data().decode('utf-8')
+    exp = load_experiment(id)
+
+    if not exp or exp.idu != current_user.id:
+        abort(404)
+    #remove files starting with id from the user dir
+    for file in glob.glob("ubumlaas/models/{}/{}*".format(current_user.username, id)):
+        os.remove(file)
+    delete_experiment(id)
+
+    return "OK", 200
+
+
 @views.experiments.route("/experiment/form_generator", methods=["POST"])
 def form_generator():
     """Get algorithm configuration to generate a form.
@@ -160,6 +190,43 @@ def form_generator():
     Returns:
         str -- HTTP response with JSON
     """
-    alg_name = request.form.get('alg_name')
+    alg_name = request.form.get('name')
     alg = get_algorithm_by_name(alg_name)
-    return jsonify({"alg_config": alg.config})
+    if alg is not None:
+        to_ret = {"config": alg.config}
+        code = 200
+    else:
+        to_ret = {"config": {}}
+        code = 418
+    return jsonify(to_ret), code
+
+
+@views.experiments.route("/experiment/get_filters", methods=["POST"])
+def get_filters():
+    """Get filters compatible
+
+    Returns:
+        str -- HTTP response with rendered filter selectable
+        str -- HTTP JSON/response with list of filters
+    """
+    form_e = ExperimentForm()
+    alg_name = request.form.get("alg_name")
+    filter_name = request.form.get("filter_name", None)
+    form_e.filter_list(alg_name, filter_name)
+    if filter_name is None:
+        return render_template("blocks/show_filters.html", form_e=form_e)
+    else:
+        return jsonify(dict(form_e.filter_name.choices))
+
+
+@views.experiments.route("/experiment/filters_generator_form", methods=["POST"])
+def form_generator_for_filter():
+    filter_name = request.form.get('name')
+    filter_ = get_filter_by_name(filter_name)
+    if filter_ is not None:
+        to_ret = {"config": filter_.config}
+        code = 200
+    else:
+        to_ret = {"config": {}}
+        code = 418
+    return jsonify(to_ret), code

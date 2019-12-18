@@ -1,10 +1,23 @@
+/**
+ * Toggle visibility of input and span field
+ * 
+ * @param {string} value 
+ * @param {string} span 
+ */
 function toggle_click(value,span){
     $("#"+span).toggle("slow");
     $("#"+value).toggle("slow");
 }
 
-function beautify_alg_config(){
-    let children = $(config_fieldset.children()[0]).children();
+/**
+ * Boostrap grid adaptation for multiples ensembles levels
+ */
+function beautify_alg_config(filter=false){
+    let over = config_fieldset;
+    if (filter){
+        over = filter_fieldset;
+    }
+    let children = $(over.children()[0]).children();
     let offset = 0;
     let base = 6;
     if(children.length > 1){
@@ -21,7 +34,7 @@ function beautify_alg_config(){
             child.addClass("offset-md-"+offset);
         }
         if (loop > 0){
-            child.prepend(name_of_base_clasifier(loop))
+            child.prepend(name_of_base_clasifier(loop, filter))
             child.css("margin-top", (2*(loop-1))+"em");
         }
         child.addClass("col-md-"+base);
@@ -29,8 +42,14 @@ function beautify_alg_config(){
     });
 }
 
-function name_of_base_clasifier(level){
-    let basename = get_basename("base_estimator", level-1)
+/**
+ * Generate a name of classifier 
+ * 
+ * @param {int} level 
+ * @return {jquery node} 
+ */
+function name_of_base_clasifier(level, filter=false){
+    let basename = get_basename("base_estimator", level-1, filter)
     if($("#"+basename+"_title").length == 0){
         let name = $("#"+basename+"_value option:selected").text();
         let block = $("<div></div>", {class: "col-12", id: basename+"_title"});
@@ -70,8 +89,11 @@ function change_value(e, ensemble=false){
  * @param {real name of parameter} param_name 
  * @param {level of the estimator} level 
  */
-function get_basename(param_name, level){
+function get_basename(param_name, level, filter=false){
     let basename = param_name;
+    if(filter){
+        basename += "_filter";
+    }
     if(level>0){
         basename = "level"+level+"_"+basename;
     }
@@ -83,19 +105,29 @@ function get_basename(param_name, level){
  * 
  * @param {Level where start the removing} base_level 
  */
-function clean_levels(base_level){
+function clean_levels(base_level, filter=false){
     sub_clasifiers_count = base_level-1;
-    let children = $(config_fieldset.children()[0]).children();
+    let over = config_fieldset;
+    if (filter){
+        over = filter_fieldset;
+    }
+    let children = $(over.children()[0]).children();
     for(let i = base_level; i<children.length; i++){
         $(children[i]).remove();
     }
 }
 
-function give_me_activator(content, i){
-    let div = $("<div></div>",{class: "row", id: i+"_div"});
-    let beauty_switch = $("<div></div>",{class: "material-switch pull-right col-2", id: i+"_beauty"});
-    let lbl = $("<label id=\""+i+"_activator_label\" for=\""+i+"_activator"+"\" onClick=\"change_validate('"+i+"')\" class=\"badge-danger\"></label>");
-    let activator = $("<input/>", {type: "checkbox", id: i+"_activator", checked: "checked"});
+/**
+ * Generate the activator for numeric inputs.
+ * 
+ * @param {jquery node} content numeric field
+ * @param {string} identifier argument id
+ */
+function give_me_activator(content, identifier){
+    let div = $("<div></div>",{class: "row pl-2 pr-2", id: identifier+"_div"});
+    let beauty_switch = $("<div></div>",{class: "material-switch pull-right col-2", id: identifier+"_beauty"});
+    let lbl = $("<label id=\""+identifier+"_activator_label\" for=\""+identifier+"_activator"+"\" onClick=\"change_validate('"+identifier+"')\" class=\"badge-danger\"></label>");
+    let activator = $("<input/>", {type: "checkbox", id: identifier+"_activator", checked: "checked"});
     beauty_switch.append(activator);
     beauty_switch.append(lbl);
     div.append(content);
@@ -104,21 +136,35 @@ function give_me_activator(content, i){
     return content;
 }
 
-function get_config_form(alg_name=null, level=0){
+/**
+ * Get the base configuration of algorithm
+ * 
+ * @param {string} alg_name complete algorithm name
+ * @param {int} level level of ensemble
+ */
+function get_config_form(alg_name=null, level=0, filter=false){
     let name_prefix = "";
+    let name_sufix = "";
+    if(filter){
+        name_sufix = "_filter";
+    }
     if (level > 0){
         name_prefix = "level"+level+"_";
     }
     if(alg_name == null){
-        alg_name = $("#alg_name").val();
+        let id_ = "alg_name";
+        if(filter){
+            id_ = "filter_name"
+        }
+        alg_name = $("#"+id_).val();
     }
-    let config = load_config(false, alg_name, false);
+    let config = load_config(false, alg_name, false, filter);
     var config_refence = JSON.parse(config);
     var parameters = Object.keys(config_refence);
     let result = {};
     parameters.forEach(function(i){
         let par = config_refence[i];
-        let parameter = $("#"+name_prefix+i+"_value");
+        let parameter = $("#"+name_prefix+i+name_sufix+"_value");
         if(!parameter.prop('disabled')){
             result[i] = config_form_value(parameter, par, level)
         }
@@ -147,6 +193,12 @@ function convertExponentialToDecimal(exponentialNumber){
     }
 }
 
+/**
+ * Load the next algorithm in ensemble chain
+ * 
+ * @param {string} name identifier of field where is the algorithm name
+ * @param {int} level level of the ensemble
+ */
 function load_next_ensemble(name, level){
     let alg_name = $("#"+name+"_value").val();
     load_new_ensemble(alg_name, level);
@@ -161,9 +213,10 @@ function load_next_ensemble(name, level){
  * @param {parameter object} param 
  * @param {level of the estimator} level 
  */
-function get_base_block(placein, block, param_name, param, level){
-    let basename = get_basename(param_name, level);
+function get_base_block(placein, block, param_name, param, level, filter=false){
+    let basename = get_basename(param_name, level, filter);
     let lbl = $("<label></label>", { "data-toggle": "tooltip",
+                                     "data-placement": "left",
                                      title: param.help,
                                      for: basename+"_value" });
     let name = document.createTextNode(param_name);

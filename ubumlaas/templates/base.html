@@ -4,13 +4,17 @@
 <head>
   <link rel="stylesheet" href="https://necolas.github.io/normalize.css/8.0.1/normalize.css" />
   <link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap-reboot.css") }}" />
-  <link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.css") }}" />
+  <link id="boostrap_css" rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootswatch/4.3.1/litera/bootstrap.min.css">
+  <!--<link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap.css") }}" />-->
   <link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap-grid.css") }}" />
+  <link rel="stylesheet" href="{{ url_for('static', filename="css/bootstrap-append.css") }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename="css/switch.css") }}" />
   <link rel="stylesheet" href="{{ url_for('static', filename="css/radio.css") }}" /> 
   <link rel="stylesheet" href="https://cdn.datatables.net/1.10.20/css/dataTables.bootstrap4.min.css" /> 
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', filename="css/custom.css") }}" /> 
+  <link rel="stylesheet" href="{{ url_for('static', filename="css/spinner.css") }}" /> 
+  <link rel="stylesheet" href="{{ url_for('static', filename="css/buttons.css") }}" /> 
+  <link rel="stylesheet" href="{{ url_for('static', filename="css/custom.css") }}" />   
   <link rel="shortcut icon" href="{{ url_for('static', filename='img/favicon.ico') }}" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0/dist/Chart.min.js"></script>
   <script src="https://code.jquery.com/jquery-3.4.1.min.js"
@@ -19,6 +23,7 @@
   <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
   <meta charset="utf-8">
   <title>{{ title }}</title>
+  {% block css %}{% endblock %}
 </head>
 
 <body>
@@ -26,9 +31,9 @@
   {% block before_anyelse %}
   {% endblock %}
 
-  <nav class="navbar sticky-top navbar-expand-lg navbar-dark" style="background-color: #A7253B;">
+  <nav class="navbar sticky-top navbar-expand-lg navbar-dark" style="background-color: var(--ubu-maroon);">
     <div class="rounded float-left">
-      <img class="navbar-brand mx-auto" src={{ url_for("static",filename="img/onlyA-32x32.svg") }}>
+      <a href="http://www.admirable-ubu.es/" target="_blank" rel="noopener noreferrer"><img class="navbar-brand mr-3" src={{ url_for("static",filename="img/onlyA-32x32.svg") }}></a>
     </div>
     <a class="navbar-brand" href="{{ url_for('core.index') }}"> UBUMLaaS</a>
     <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup"
@@ -37,17 +42,17 @@
     </button>
     <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
       <div class="navbar-nav">
-        <a class="nav-item nav-link" href="{{ url_for('core.index') }}">Home</a>
-        <a class="nav-item nav-link" href="{{ url_for('core.info') }}">About</a>
+        <a class="nav-item nav-link {% if title=="UBUMLaaS" %}active{% endif %}" href="{{ url_for('core.index') }}">Home</a>
+        <a class="nav-item nav-link {% if title=="Info" %}active{% endif %}" href="{{ url_for('core.info') }}">About</a>
       </div>
       <div class="navbar-nav ml-auto">
         {% if current_user.is_authenticated %}
-        <a class="nav-item nav-link" href="{{ url_for('users.profile') }}">Logged in as {{current_user.username}}</a>
-        <a class="nav-item nav-link" href="{{ url_for('experiments.new_experiment') }}">New Experiment</a>
-        <a class="nav-item nav-link" href="{{ url_for('users.logout') }}">Logout</a>
+        <a class="nav-item nav-link {% if "Profile" in title %}active{% endif %}" href="{{ url_for('users.profile') }}">My launched experiments</a>
+        <a class="nav-item nav-link {% if title=="New experiment" %}active{% endif %}" href="{{ url_for('experiments.new_experiment') }}">New Experiment</a>
+        <a class="nav-item nav-link " href="{{ url_for('users.logout') }}">Logout</a>
         {% else %}
-        <a class="nav-item nav-link" href="{{ url_for('users.login') }}">Login</a>
-        <a class="nav-item nav-link" href="{{ url_for('users.register') }}">Register</a>
+        <a class="nav-item nav-link {% if title=="Log in" %}active{% endif %}" href="{{ url_for('users.login') }}">Login</a>
+        <a class="nav-item nav-link {% if title=="Register" %}active{% endif %}" href="{{ url_for('users.register') }}">Register</a>
         {% endif %}
       </div>
     </div>
@@ -55,12 +60,11 @@
 
   </ul>
 
-  <div class="container">
-    {% block content %}
+  {% block content %}
 
-    {% endblock %}
-  </div>
+  {% endblock %}
 
+  {% block footer %}
   <footer id="footer">
     <div class="main-footer widgets-dark typo-light d-flex">
       <div class="container">
@@ -70,13 +74,13 @@
             <div class="widget subscribe no-box">
               <h5 class="widget-title">Location<span></span></h5>
               <ul class="thumbnail-widget">
-                <li><a href="https://www.ubu.es/escuela-politecnica-superior/escuela-politecnica-superior">Escuela politécnica superior</a></li>
+                <li><a  target="_blank" rel="noopener noreferrer" href="https://www.ubu.es/escuela-politecnica-superior/escuela-politecnica-superior">Escuela politécnica superior</a></li>
                 <li>Río Vena Campus</li>
                 <li>Avda. Cantabria s/n 09006</li>
                 <li>Burgos (Burgos)</li>
                 <li>Spain</li>
-                <li><i class="material-icons">phone</i>947 25 89 00</li>
-                <li><i class="material-icons">email</i><a href="mailto:eps@ubu.es">eps@ubu.es</a></li>
+                <li><i class="material-icons">phone</i> <a href="tel:+34947258900">+34 947 25 89 00</a></li>
+                <li><i class="material-icons">email</i> <a href="mailto:eps@ubu.es">eps@ubu.es</a></li>
               </ul>
             </div>
           </div>
@@ -86,10 +90,10 @@
               <h5 class="widget-title">Quick Links<span></span></h5>
               <ul class="thumbnail-widget">
                 <li>
-                  <div class="thumb-content"><a href="http://www.admirable-ubu.es/">ADMIRABLE</a></div>
+                  <div class="thumb-content"><a target="_blank" rel="noopener noreferrer" href="http://www.admirable-ubu.es/">ADMIRABLE</a></div>
                 </li>
                 <li>
-                  <div class="thumb-content"><a href="https://www.ubu.es/">University of Burgos</a></div>
+                  <div class="thumb-content"><a target="_blank" rel="noopener noreferrer" href="https://www.ubu.es/">University of Burgos</a></div>
                 </li>
                 <li>
                   <div class="thumb-content"><a href="{{ url_for('core.info') }}">About</a></div>
@@ -102,7 +106,7 @@
             <div class="widget no-box">
               <h5 class="widget-title">Register<span></span></h5>
               <h6>Do you need an account?</h6>
-              <a class="btn btn-secondary" href="{{ url_for('users.register') }}">Register Now</a>
+              <a class="btn btn-ubu-maroon" href="{{ url_for('users.register') }}">Register Now</a>
             </div>
           </div>
 
@@ -110,8 +114,14 @@
 
             <div class="widget no-box">
               <h5 class="widget-title">Contact Us<span></span></h5>
-
-              <p><a href="mailto:info@domain.com" title="glorythemes">info@domain.com</a></p>
+              <ul class="thumbnail-widget">
+                  <li>
+                    <div class="thumb-content"> <i class="material-icons">email</i> <a href="mailto:ADMIRABLE_rg@oficina.ubu.es">ADMIRABLE_rg@oficina.ubu.es</a></div>
+                  </li>
+                  <li>
+                    <div class="thumb-content"> <i class="material-icons">phone</i> <a href="tel:+34947259358">+34 947 25 93 58</a></div>
+                  </li>
+              </ul>
             </div>
           </div>          
         </div>
@@ -155,15 +165,31 @@
       </div>
     </div>
   </footer>
+  {% endblock %}
+  {% include "./modals/alert_modal.html" %}
+  {% include "./modals/confirm_modal.html" %}
+  <script>
+    page_information = {version: "1.0.5", mode: {reuse: false, style: "litera"}}
+  </script>
   <script src="{{ url_for('static', filename="js/bootstrap.js") }}"></script>
   <script src="{{ url_for('static', filename="js/bootstrap.bundle.js") }}"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js"
-    integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
-    crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename="js/modals.js") }}"></script>
+  <script src="{{ url_for('static', filename="js/colors.js") }}"></script>
   <script src="https://cdn.datatables.net/1.10.20/js/jquery.dataTables.min.js"></script>
   <script src="https://cdn.datatables.net/1.10.20/js/dataTables.bootstrap4.min.js"></script>
   <script>
   GLOBAL_STYLE = getComputedStyle(document.body);
+  </script>
+  <script>
+    $(function () {
+        $('[data-toggle="popover"]').popover();
+    });
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+    $('.popover-dismiss').popover({
+        trigger: 'focus'
+    });
   </script>
   {% block js %}
   {% endblock %}

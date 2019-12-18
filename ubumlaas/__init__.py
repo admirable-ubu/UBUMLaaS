@@ -7,10 +7,11 @@ import variables as v
 import redis
 from rq import Queue
 from ubumlaas.jobs import WorkerBuilder
-
 import ubumlaas.weka.weka_packages as weka_packages
-
+from flask_mail import Mail
 import time
+import json
+import logging.config
 
 
 def create_app(config_name):
@@ -23,41 +24,48 @@ def create_app(config_name):
         Flask -- flask application.
     """
     v.start()
+    v.basedir = os.path.abspath(os.path.dirname(__file__))
+    v.appdir = os.path.join(v.basedir,"..")
+    # loggin setup
+    import ubumlaas.logger
+    ubumlaas.logger.create_folders_if_needed()
+    logging.config.dictConfig(json.load(open(os.getenv("LOGGING_CONFIG") or "logging_config.json")))
     app = Flask(__name__)
-
+    v.app = app
+    app.config.from_pyfile('../config.py') # from config.py
     ###########################################
     ############ CONFIGURATIONS ###############
     ###########################################
 
-    # Remember you need to set your environment variables at the command line
-    # when you deploy this to a real website.
-    # export SECRET_KEY=mysecret
-    # set SECRET_KEY=mysecret
-    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY')
-
     ######################
     ### DATABASE SETUP ###
     ######################
-    v.basedir = os.path.abspath(os.path.dirname(__file__))
-    app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///"+os.path.join(v.basedir, "data.sqlite")
-    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
     v.db = SQLAlchemy(app)
     Migrate(app, v.db)
 
+    ######################
+    #### EMAIL SETUP #####
+    ######################
+
+    mail = Mail(app)
+    v.mail = mail
     if config_name == "main_app":
+        ######################
+        ##### BASE SETUP #####
+        ######################
         # Redis
         v.r = redis.Redis()
-        v.q = Queue(connection=v.r, default_timeout=-1)
+        v.q = Queue("medium-ubumlaas", connection=v.r, default_timeout=-1)
 
         BASE_WORKERS = 3
         v.workers = 0
         for _ in range(BASE_WORKERS):
             WorkerBuilder().set_queue(v.q).create().start()
 
-        # Install weka packages
-        v.q.enqueue(weka_packages.install_packages,
-                    "ubumlaas/weka/weka_packages.json")        
+        #  Startup weka unofficial packages
+        v.q.enqueue(weka_packages.start_up_weka,
+                    "ubumlaas/weka/weka_packages.json")
 
     ######################
     ###  LOGIN CONFIG  ###
@@ -83,7 +91,6 @@ def create_app(config_name):
     def split_dict_key(cad):
         return cad.split(".")[-1]
 
-    app.jinja_env.filters["split"]=split_dict_key
-    v.app = app
-    return app
+    app.jinja_env.filters["split"] = split_dict_key
 
+    return app

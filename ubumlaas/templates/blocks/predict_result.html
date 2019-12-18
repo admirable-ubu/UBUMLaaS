@@ -1,7 +1,42 @@
-<div class="col-12 center table-responsive">
-{% if data %}
-    {{ data | safe }}
-{% endif %}
+<div class="row">
+    <div class="tabs-container col-12">
+        <ul class="nav nav-tabs">
+            <li>
+                <a data-toggle="tab" href="#all_tab" class="nav-link active" id="all_tab-tab" aria-controls="all_tab" aria-selected="true">All</a>
+            </li>
+            <li>
+                <a data-toggle="tab" href="#reduced_tab" class="nav-link" id="reduced_tab-tab" aria-controls="reduced_tab">Reduced</a>
+            </li>
+        </ul>
+        <div class="tab-content container-fluid">
+            <div class="tab-pane fade active show" id="all_tab" role="tabpanel" aria-labelledby="all_tab-tab">
+                <div class="container-fluid">    
+                    <fieldset>
+                        <div id="form_dataset_configuration">
+                            <div class="table-responsive" id="show_predict_dataset" class="form-group">
+                                {% if data %}
+                                    {{ data | safe }}
+                                {% endif %}
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+            </div>
+            <div class="tab-pane fade" id="reduced_tab" role="tabpanel" aria-labelledby="reduced_tab-tab">
+                <div class="container-fluid">    
+                    <fieldset>
+                        <div class="table-responsive" id="form_dataset_configuration_reduced">
+                            <div id="show_predict_dataset2" class="form-group">
+                                {% if datareduc %}
+                                    {{ datareduc | safe }}
+                                {% endif %}
+                            </div>
+                        <div>
+                    </fieldset>    
+                </div>    
+            </div>
+        </div>    
+    </div>
 </div>
 <div class="col-md-6 center">
     <a class="btn btn-primary btn-block btn-lg mt-4" role="button" href="{{url_for("experiments.download_result",name=file)}}">Download</a>
@@ -9,9 +44,70 @@
 
 {% block js %}
 <script>
+    /*function (){
 
-    $($($("#div_res").children()[0]).children()[0]).DataTable();
+    }*/
+</script>
+<script>
+    _heads = [];
+    _childs = [];
+    $("#show_predict_dataset > table > thead > tr").each(function(){
+        $(this).children('th').each(function(){
+            let text = $(this).text();
+            _heads.push(text);
+        });
+    });
+
+    for (let i = 0; i<_heads.length; i++){
+        if(_heads[i].startsWith("prediction_")){
+            splited = _heads[i].split("prediction_");
+            _childs.push({
+                class: _heads.indexOf(splited[1]),
+                predicted: i,
+            });
+        }
+    }
+    _results = new Array()
+    _index=0;
+    $("#show_predict_dataset > table > tbody > tr").each(function(){
+        let row = $(this);
+        let __inner_array = new Array();
+        _childs.forEach(function(e){
+           let hit = $(row.children()[e.class]).text()==$(row.children()[e.predicted]).text();
+           let suffix = "-even";
+           if(_index%2==0){
+                suffix = "-odd"
+           }
+           if(!hit){
+               $(row.children()[e.class]).addClass("table-danger"+suffix);
+               $(row.children()[e.predicted]).addClass("table-danger"+suffix);
+               __inner_array.push("table-danger"+suffix)
+           }else{
+               $(row.children()[e.class]).addClass("table-success"+suffix);
+               $(row.children()[e.predicted]).addClass("table-success"+suffix);
+               __inner_array.push("table-success"+suffix)
+           }
+        });
+        _results.push(__inner_array);
+        _index++;       
+    });
+
+    _index=0;
+    $("#show_predict_dataset2 > table > tbody > tr").each(function(){
+        let row = $(this);
+        for (i=0; i<_results[0].length; i++){
+            $(row.children()[i+1]).addClass(_results[_index][i]);
+        }
+        _index++;
+    });
 
 </script>
+<script>
+    
+    $($("#show_predict_dataset").children()[0]).DataTable();
+    $($("#show_predict_dataset2").children()[0]).DataTable();
+
+</script>
+
 
 {% endblock js %}

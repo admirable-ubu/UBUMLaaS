@@ -4,52 +4,53 @@
 
 <div id="loader-div" style="display: none">
         <div id="loader">
-                <img src="{{ url_for("static",filename="img/thinking2.gif") }}"/>
+                <div class="lds-spinner center"><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div><div></div></div>
         </div>
 </div>
 
 {% endblock %}
 
 {% block content %}
-
-<div class="jumbotron">
-        <h3 class="text-center">Predict</h3>
-        <div class="row" id="updata">
-                <div class="col-6 center">
-                        <fieldset>
-                                <form class="mt-4" id="form_pred">
-                                        {{ form_pr.hidden_tag() }}
-                                        <div class="form-group custom-file">
-                                                {{ form_pr.dataset(class="custom-file-input") }}
-                                                {{ form_pr.dataset.label(class="custom-file-label",id="datasetLabel") }}
-                                        </div>
-                                        <div class="form-group">
-                                                <button class="btn btn-secondary btn-block" id="uploadDataset">Upload</button>
-                                        </div>
-                                </form>
-                        </fieldset>
-                </div>
-                <div class="col-12 center">
-                        <div id="show_dataset" class="col-12 form-group table-responsive">
-                                {% include 'blocks/show_dataset.html' %}
+<div class="container">
+        <div class="jumbotron">
+                <h3 class="text-center">Predict</h3>
+                <div class="row" id="updata">
+                        <div class="col-6 center">
+                                <fieldset>
+                                        <form class="mt-4" id="form_pred">
+                                                {{ form_pr.hidden_tag() }}
+                                                <div class="form-group custom-file">
+                                                        {{ form_pr.dataset(class="custom-file-input") }}
+                                                        {{ form_pr.dataset.label(class="custom-file-label",id="datasetLabel") }}
+                                                </div>
+                                                <div class="form-group">
+                                                        <button class="btn btn-secondary btn-block" id="uploadDataset">Upload</button>
+                                                </div>
+                                        </form>
+                                </fieldset>
                         </div>
+                        <div class="col-12 center">
+                                <div id="show_dataset" class="col-12 form-group table-responsive">
+                                        {% include 'blocks/show_dataset.html' %}
+                                </div>
+                        </div>
+                        <div class="col-md-6 center">
+                                <fieldset>
+                                        <form class="col-md-6 offset-3" id="submit_completed_experiment">
+                                                {{ form_pr.hidden_tag() }}
+                                                <div class="form-group">
+                                                        <input type="submit" class="btn btn-primary btn-block btn-lg mt-4" value="Predict"/>
+                                                </div>
+                                        </form>
+                                </fieldset>
+                        </div>  
                 </div>
-                <div class="col-md-6 center">
-                        <fieldset>
-                                <form class="col-md-6 offset-3" id="submit_completed_experiment">
-                                        {{ form_pr.hidden_tag() }}
-                                        <div class="form-group">
-                                                <input type="submit" class="btn btn-primary btn-block btn-lg mt-4" value="Predict"/>
-                                        </div>
-                                </form>
-                        </fieldset>
-                </div>  
-        </div>
 
-        <div class="row" id="div_res" style= "display: none">
-                <div class="col-12 center">
-                        <div id="show_result" class="col-12 form-group table-responsive">
-                                {% include 'blocks/predict_result.html' %}
+                <div class="container" id="div_res" style= "display: none">
+                        <div class="col-12 center">
+                                <div id="show_result" class="col-12 form-group table-responsive">
+                                        {% include 'blocks/predict_result.html' %}
+                                </div>
                         </div>
                 </div>
         </div>
@@ -71,7 +72,7 @@
                         update_datasets();
                 },
                 error: function (result) {
-                        alert("Upload failed");
+                        launch_warning_modal("Upload failed", "The dataset upload failed, try again later or contact with the administratior.")
                 },
                 cache: false,
                 contentType: false,
@@ -79,6 +80,9 @@
                 });
         });
 
+        /**
+          TODO: are this functions used?
+         */
         function update_datasets() {
                 $.ajax({
                         url: '{{ url_for("experiments.update_dataset_list") }}',
@@ -87,7 +91,7 @@
                                 $("#select_dataset").html(result);
                                 flag=true;
                         }
-                })
+                });
         }
 
         $("#dataset").change(function(){
@@ -97,7 +101,7 @@
 
         $("form#submit_completed_experiment").submit(function (e) {
                 if(!flag){
-                        alert("You must upload a dataset.");
+                        launch_danger_modal("None dataset uploaded", "You must upload a dataset.")
                         return false;
                 }else{
                         e.preventDefault();
@@ -116,7 +120,7 @@
                                 $("#div_res").html(result);
                         },
                         error: function (result) {
-                                alert("Prediction error");
+                                launch_danger_modal("Prediction error", "Check if your dataset has the same columns which you used in the training.", window.location.reload.bind(window.location))
                                 delete_file();
                         }
                         });
@@ -127,10 +131,7 @@
         function delete_file(){
                 $.ajax({
                         url:"{{ url_for("experiments.delete_file")}}",
-                        type: 'DELETE',
-                        success: function (result){
-                                location.reload();
-                        }
+                        type: 'DELETE'
                 });
         }
 </script>

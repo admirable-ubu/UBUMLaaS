@@ -3,19 +3,36 @@ import smtplib
 import os
 import variables as v
 import copy
+import arff
+import re
+import numpy as np
+from itsdangerous import URLSafeTimedSerializer
+from flask_mail import Message
+from flask import url_for
 
-
-def get_dataframe_from_file(path, filename):
-    if filename.split(".")[-1] == "csv":
+def get_dataframe_from_file(path, filename, target_column=False):
+    extension = filename.split(".")[-1]
+    targets_indexes = None
+    if extension == "csv":
         file_df = pd.read_csv(path + filename)
-    elif filename.split(".")[-1] == "xls":
+    elif extension == "xls":
         file_df = pd.read_excel(path + filename)
+    elif extension == "arff":
+        data = arff.load(open(path+filename, "r"), encode_nominal=True)
+        columns = [row[0] for row in data["attributes"]]
+        file_df = pd.DataFrame(data["data"], columns=columns)
+        match = re.search(r'-C[ \t]+(-?\d)', data["relation"])
+        if match:
+            targets_indexes = match.group(1)
     else:
         raise Exception("Invalid format for "+filename)
+
+    if target_column:
+        return file_df, targets_indexes
     return file_df
 
 
-def send_email(user, email, procid, result=None):
+def send_experiment_result_email(user, email, procid, result=None):
     """SEND an email with the result
 
     Arguments:
@@ -28,21 +45,17 @@ def send_email(user, email, procid, result=None):
     """
     from ubumlaas.experiments.views.experiment import result_experiment
 
-    with smtplib.SMTP('smtp.gmail.com', 587) as smtp:
-        smtp.ehlo()
-        smtp.starttls()
-        smtp.ehlo()
+    subject = 'Your process on UBUMLaaS ' + str(procid) + ' has finished.'
 
-        smtp.login(os.environ["EMAIL_AC"], os.environ["EMAIL_PASS"])
+    with v.app.app_context(), v.app.test_request_context():
+        html = result_experiment(procid, admin= True)
 
-        subject = 'Your process on UBUMLaaS ' + str(procid) + ' has finished.'
+        send_email(subject, email, html=html)
 
-        with v.app.app_context(), v.app.test_request_context():
-            body = result_experiment(procid, True)
 
-        msg = f'Content-Type: text/html\nSubject: {subject}\n\n{body}'
-
-        smtp.sendmail(os.environ["EMAIL_AC"], email, msg)
+def send_email(subject, to=None, body=None, html=None):
+    msg = Message(subject = subject, recipients = [to], body = body, html = html)
+    v.mail.send(msg)
 
 
 def generate_df_html(df, num=6):
@@ -76,12 +89,14 @@ def generate_df_html(df, num=6):
     return html_table
 
 
-def get_ensem_alg_name(conf):
+def get_ensem_alg_name(conf, iteration=1):
     if "base_estimator" in conf["parameters"].keys():
-        return conf["alg_name"] + "-" + get_ensem_alg_name(
-            conf["parameters"]["base_estimator"])
+        return v.app.jinja_env.filters["split"](conf["alg_name"]) \
+            + "<br>"+("&nbsp;"*(4*iteration))+"⤿ "\
+            + get_ensem_alg_name(
+                conf["parameters"]["base_estimator"], iteration+1)
     else:
-        return conf["alg_name"]
+        return v.app.jinja_env.filters["split"](conf["alg_name"])
 
 
 def get_dict_exp(name, dict_config):
@@ -111,3 +126,24 @@ def value_to_bool(y_test, y_pred):
     un = y_test.unique()
     d = {un[0]: True, un[1]: False}
     return y_test.map(d), pd.Series(y_pred).map(d)
+
+
+def generate_confirmation_token(email):
+    serializer = URLSafeTimedSerializer(v.app.config['SECRET_KEY'])
+    return serializer.dumps(email, salt=v.app.config['SECURITY_PASSWORD_SALT'])
+
+
+def confirm_token(token, expiration=3600):
+    serializer = URLSafeTimedSerializer(v.app.config['SECRET_KEY'])
+    try:
+        email = serializer.loads(
+            token,
+            salt=v.app.config['SECURITY_PASSWORD_SALT'],
+            max_age=expiration
+        )
+    except:
+        return False
+    return email
+
+def get_ngrok_url(endpoint, **values):
+    return os.getenv("NGROK_URL")+url_for(endpoint, **values) if os.getenv("NGROK_URL") else url_for(endpoint, **values, _external=True)
