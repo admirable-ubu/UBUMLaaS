@@ -1,6 +1,7 @@
 import sklearn
 import sklearn.base
 import sklearn.cluster
+import sklearn.mixture
 import sklearn.linear_model
 import sklearn.metrics
 import sklearn.ensemble
@@ -18,6 +19,8 @@ from lib.skmultilearn.ext import Meka
 from ubumlaas.experiments.execute_algorithm import Abstract_execute
 from ubumlaas.experiments.execute_algorithm._weka import Execute_weka
 
+import variables as v
+
 
 class Execute_meka(Abstract_execute):
 
@@ -28,6 +31,7 @@ class Execute_meka(Abstract_execute):
             experiment {dict} -- experiment dictionary
         """
         Abstract_execute.__init__(self, experiment)
+        v.app.logger.info("Execution library - %d - MEKA", self.id)
 
     def kfold_algorithm(self):
         """Uses KFold function
@@ -79,6 +83,7 @@ class Execute_meka(Abstract_execute):
         """
         with open(path, 'wb') as fp:
             fp.write(model.classifier_dump)
+        v.app.logger.info("Model saved - %d - %s", self.id, self.algorithm_name)
 
     def load_meka_model(self, path):
         """Load Meka java object
@@ -91,6 +96,7 @@ class Execute_meka(Abstract_execute):
         """
         with open(path, 'rb') as fp:
             meka_model = fp.read()
+        v.app.logger.info("Model readed - %d - %s", self.id, self.algorithm_name)    
         return meka_model
 
     def serialize(self, model, path):
@@ -122,7 +128,9 @@ class Execute_meka(Abstract_execute):
             X {DataFrame} -- attributes columns
             y {DataFrame} -- targets column
         """
+        v.app.logger.info("Training model - %d - %s", self.id, self.algorithm_name)
         model.fit(X.values, y.values)
+        v.app.logger.info("Model trained - %d - %s", self.id, self.algorithm_name)
 
     def predict(self, model, X):
         """Predict with X columns values using the model

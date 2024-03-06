@@ -9,22 +9,39 @@ import numpy as np
 from itsdangerous import URLSafeTimedSerializer
 from flask_mail import Message
 from flask import url_for
+from flask_login import current_user
 
 def get_dataframe_from_file(path, filename, target_column=False):
     extension = filename.split(".")[-1]
     targets_indexes = None
     if extension == "csv":
         file_df = pd.read_csv(path + filename)
+        try:
+            v.app.logger.info("%d - csv file %s selected", current_user.id, filename)
+        except AttributeError:
+            pass
     elif extension == "xls":
         file_df = pd.read_excel(path + filename)
+        try:
+            v.app.logger.info("%d - xls file %s selected", current_user.id, filename)
+        except AttributeError:
+            pass
     elif extension == "arff":
         data = arff.load(open(path+filename, "r"), encode_nominal=True)
+        try:
+            v.app.logger.info("%d - arff file %s selected", current_user.id, filename)
+        except AttributeError:
+            pass
         columns = [row[0] for row in data["attributes"]]
         file_df = pd.DataFrame(data["data"], columns=columns)
         match = re.search(r'-C[ \t]+(-?\d)', data["relation"])
         if match:
             targets_indexes = match.group(1)
     else:
+        try:
+            v.app.logger.error("%d - Trying to use unsupported format dataset", current_user.id)
+        except AttributeError:
+            raise Exception("Unknown user trying upload dataset")
         raise Exception("Invalid format for "+filename)
 
     if target_column:
@@ -51,6 +68,8 @@ def send_experiment_result_email(user, email, procid, result=None):
         html = result_experiment(procid, admin= True)
 
         send_email(subject, email, html=html)
+    
+    v.app.logger.info("%d - Email send experiment %d has finished", user.id, procid)
 
 
 def send_email(subject, to=None, body=None, html=None):
@@ -129,6 +148,7 @@ def value_to_bool(y_test, y_pred):
 
 
 def generate_confirmation_token(email):
+    v.app.logger.info("Generated token to reset password")
     serializer = URLSafeTimedSerializer(v.app.config['SECRET_KEY'])
     return serializer.dumps(email, salt=v.app.config['SECURITY_PASSWORD_SALT'])
 
@@ -147,3 +167,8 @@ def confirm_token(token, expiration=3600):
 
 def get_ngrok_url(endpoint, **values):
     return os.getenv("NGROK_URL")+url_for(endpoint, **values) if os.getenv("NGROK_URL") else url_for(endpoint, **values, _external=True)
+
+def find_y_uniques(y):
+    uniques = np.unique(y.values)
+    uniques.sort()
+    return uniques
