@@ -9,12 +9,18 @@
 Machine Learning as a Service (MLaaS) platform based on [ADMIRABLE](http://admirable-ubu.es/) and [BEST-AI](https://www.ubu.es/best-ai-biologia-educacion-y-salud-con-tecnologias-avanzadas-informaticas-best-ai) research groups methods.
 
 ---
-This application is described as one of the result of two different projects (with objectives partially overlapping, and being this application in the intersection of the objectives):
+This application is described as one of the result of four different projects (with objectives partially overlapping, and being this application in the intersection of the objectives):
 
-1. <a href="http://www.mineco.gob.es/portal/site/mineco/"><img align="right" width="20%" src="ubumlaas/static/img/MEC.svg"></a>
-Project "***Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones***" from "*Ministerio de Economía y Competitividad*" (reference: TIN2015-67534-P)
-2. <a href="https://www.jcyl.es/"><img align="right" width="20%" src="ubumlaas/static/img/JCYL.svg"></a>
-Project "***Minería de datos para la mejora del mantenimiento y disponibilidad de máquinas de altas presiones***" from *"Consejería de Educación de la Junta de Castilla y León"* (reference: BU085P17)
+1. Project "***Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones***" from "*Ministerio de Economía y Competitividad*" (reference: TIN2015-67534-P)
+2. Project "***Minería de datos para la mejora del mantenimiento y disponibilidad de máquinas de altas presiones***" from *"Consejería de Educación de la Junta de Castilla y León"* (reference: BU085P17)
+
+3. Project "***Aprendizaje automático con datos escasamente etiquetados para la industria 4.0***" from "*Ministerio de ciencia, innovación y universidades*" (reference: PID2020-119894GB-I00)
+4. Project: "***Métodos y Aplicaciones Industriales del Aprendizaje Semisupervisado***" from Junta de Castilla y León (JCyL) (reference: BU055P20)
+
+<img hspace="2" align="center" width="23%" src="ubumlaas/static/img/MEC.svg">
+<img align="center" width="73%" src="funding/funding_project_cyl.svg" />
+
+![Funding](funding/funding_project.svg)
 
 <br>
 
@@ -82,19 +88,7 @@ Project "***Minería de datos para la mejora del mantenimiento y disponibilidad 
 
 ---
 
-This application is described as one of the result of four different projects (with objectives partially overlapping, and being this application in the intersection of the objectives):
 
-1.    Project "Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones" from "Ministerio de Economía y Competitividad" (reference: TIN2015-67534-P)
-2.   Project "Minería de datos para la mejora del mantenimiento y disponibilidad de máquinas de altas presiones" from "Consejería de Educación de la Junta de Castilla y León" (reference: BU085P17)
-3. Project "Aprendizaje automático con datos escasamente etiquetados para la industria 4.0" from "Ministerio de ciencia, innovación y universidades" (reference: PID2020-119894GB-I00)
-4. Project: "Métodos y Aplicaciones Industriales del Aprendizaje Semisupervisado" from Junta de Castilla y León (JCyL) (regional government) (reference: BU055P20)
-
-
-<!--Add the funding picture-->
-<img hspace="2" align="center" width="25%" src="ubumlaas/static/img/MEC.svg">
-<img align="center" width="73%" src="funding/funding_project_cyl.svg" />
-
-![Funding](funding/funding_project.svg)
 
 
 <!-- <a href="https://ec.europa.eu/regional_policy/es/funding/erdf/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/FEDER.svg"></a>
