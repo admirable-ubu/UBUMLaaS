@@ -1,7 +1,7 @@
 # UBUMLaaS [![admirable-logo](ubumlaas/static/img/onlyA-32x32.svg)](http://admirable-ubu.es/)
 
 
-[![Travis (.org)](https://img.shields.io/travis/JoseBarbero/UBUMLaaS/master.svg?label=Travis%20CI&logo=travis-ci&logoColor=white&style=for-the-badge)](https://travis-ci.org/JoseBarbero/UBUMLaaS)
+
 [![Code Climate maintainability](https://img.shields.io/codeclimate/maintainability/JoseBarbero/UBUMLaaS?logo=code-climate&style=for-the-badge)](https://codeclimate.com/github/JoseBarbero/UBUMLaaS)
 [![GitHub repo size](https://img.shields.io/github/repo-size/JoseBarbero/UBUMLaaS?color=yellowgreen&logo=github&style=for-the-badge)](https://github.com/JoseBarbero/UBUMLaaS/archive/master.zip)
 [![GitHub](https://img.shields.io/github/license/JoseBarbero/UBUMLaaS?logo=gnu&logoColor=white&style=for-the-badge)](https://github.com/JoseBarbero/UBUMLaaS/blob/master/LICENSE)
@@ -82,9 +82,24 @@ Project "***Minería de datos para la mejora del mantenimiento y disponibilidad 
 
 ---
 
-<a href="https://ec.europa.eu/regional_policy/es/funding/erdf/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/FEDER.svg"></a>
-<a href="http://www.mineco.gob.es/portal/site/mineco/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/MEC.svg"></a>
+This application is described as one of the result of four different projects (with objectives partially overlapping, and being this application in the intersection of the objectives):
+
+1.    Project "Algoritmos de ensembles para problemas de salidas múltiples - nuevos desarrollos y aplicaciones" from "Ministerio de Economía y Competitividad" (reference: TIN2015-67534-P)
+2.   Project "Minería de datos para la mejora del mantenimiento y disponibilidad de máquinas de altas presiones" from "Consejería de Educación de la Junta de Castilla y León" (reference: BU085P17)
+3. Project "Aprendizaje automático con datos escasamente etiquetados para la industria 4.0" from "Ministerio de ciencia, innovación y universidades" (reference: PID2020-119894GB-I00)
+4. Project: "Métodos y Aplicaciones Industriales del Aprendizaje Semisupervisado" from Junta de Castilla y León (JCyL) (regional government) (reference: BU055P20)
+
+
+<!--Add the funding picture-->
+<img hspace="2" align="center" width="25%" src="ubumlaas/static/img/MEC.svg">
+<img align="center" width="73%" src="funding/funding_project_cyl.svg" />
+
+![Funding](funding/funding_project.svg)
+
+
+<!-- <a href="https://ec.europa.eu/regional_policy/es/funding/erdf/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/FEDER.svg"></a>
+
 <a href="https://www.jcyl.es/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/JCYL.svg"></a>
-<a href="https://www.educa.jcyl.es/universidad/es/fondos-europeos/fondo-europeo-desarrollo-regional-feder/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/JCYL_impulsa.svg"></a>
+<a href="https://www.educa.jcyl.es/universidad/es/fondos-europeos/fondo-europeo-desarrollo-regional-feder/"><img hspace="2%" align="center" width="20%" src="ubumlaas/static/img/JCYL_impulsa.svg"></a> -->
 
         
